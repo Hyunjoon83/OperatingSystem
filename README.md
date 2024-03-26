@@ -1,2 +1,5 @@
-# OperatingSystem
-HYU_ELE3021 (운영체제)
+# Hanyang University _ OperatingSystem
+
+## Professor : Sooyong Kang
+
+### Project1 : getgpid
