@@ -15,6 +15,8 @@ getgpid(void)
         struct proc *parent = curproc->parent; 
         if (parent->parent) {
             return parent->parent->pid;
+        } else {
+            return -1;
         }
     }
     return -1; 
