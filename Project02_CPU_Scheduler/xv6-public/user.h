@@ -27,6 +27,7 @@ int myfunction(char*);
 int getgpid(void);
 void yield(void);
 void yield1(void);
+void yield2(void);
 void printpinfo(void);
 int getlev(void);
 int setpriority(int, int);

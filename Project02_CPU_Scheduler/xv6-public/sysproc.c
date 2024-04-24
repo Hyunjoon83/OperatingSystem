@@ -97,10 +97,17 @@ sys_yield(void)
   return 0;
 }
 
-int 
+int
 sys_yield1(void)
 {
   yield1();
+  return 0;
+}
+
+int
+sys_yield2(void)
+{
+  yield2();
   return 0;
 }
 

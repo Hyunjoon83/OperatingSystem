@@ -7,10 +7,11 @@
 #include "proc.h"
 #include "spinlock.h"
 
-extern uint ticks;
+extern uint ticks;                
 extern struct spinlock tickslock;
 
-void printpinfo()
+void
+printpinfo()
 {
     int localTicks;
     struct proc *p = myproc();
@@ -18,8 +19,9 @@ void printpinfo()
     acquire(&tickslock);
     localTicks = ticks;
     release(&tickslock);
-
-    while (1){
+    
+    while(1)
+    {
         cprintf("ticks: %d, pid = %d, name = %s\n", localTicks++, p->pid, p->name);
         yield();
     }

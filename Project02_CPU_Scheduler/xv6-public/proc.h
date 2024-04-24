@@ -55,7 +55,6 @@ struct proc {
   int timeQuantum;             // Time quantum
   struct proc* next;           // Next process in the queue
 
-  int original_ql;             // MLFQ queuelevel before entering MoQ
   int inMoQ;                   // In the monopoly queue
 };
 

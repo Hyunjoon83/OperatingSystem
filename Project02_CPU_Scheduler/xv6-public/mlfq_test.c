@@ -95,10 +95,10 @@ int main(int argc, char *argv[])
       int x = getlev();
       if (x < 0 || x > 3)
       {
-	if(x != 99){
+	      if(x != 99){
           printf(1, "Wrong level: %d\n", x);
           exit();
-	} 
+	      }    
       }
       if(x == 99) count[4]++;
       else count[x]++;
@@ -121,10 +121,10 @@ int main(int argc, char *argv[])
       int x = getlev();
       if (x < 0 || x > 3)
       {
-	if(x != 99){
+	      if(x != 99){
           printf(1, "Wrong level: %d\n", x);
           exit();
-	}
+	      }
       }
       if(x == 99) count[4]++;
       else count[x]++;
@@ -147,10 +147,10 @@ int main(int argc, char *argv[])
       int x = getlev();
       if (x < 0 || x > 3)
       {
-	if(x != 99){
+	      if(x != 99){
           printf(1, "Wrong level: %d\n", x);
           exit();
-	}
+	      }
       }
       if(x == 99) count[4]++;
       else count[x]++;
@@ -181,9 +181,9 @@ int main(int argc, char *argv[])
       {
         if(x != 99)
         {
-	  printf(1, "Wrong level: %d\n", x);
-	  exit();
-	}
+          printf(1, "Wrong level: %d\n", x);
+          exit();
+        }
       }
       if(x == 99) count[4]++;
       else count[x]++;

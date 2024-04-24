@@ -128,6 +128,7 @@ int             setmonopoly(int, int);
 void            monopolize(void);
 void            unmonopolize(void);
 void            yield1(void);
+void            yield2(void);
 void            proc_yield(void);
 
 // swtch.S

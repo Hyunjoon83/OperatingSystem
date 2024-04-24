@@ -51,7 +51,7 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
-      if (ticks % 100 == 0){
+      if(ticks % 100 == 0){
         priorityBoosting();
       }
       wakeup(&ticks);
@@ -105,8 +105,7 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
     proc_yield();
 
   // Check if the process has been killed since we yielded
