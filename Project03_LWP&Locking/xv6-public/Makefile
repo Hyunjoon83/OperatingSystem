@@ -180,12 +180,11 @@ UPROGS=\
 	_stressfs\
 	_wc\
 	_zombie\
-	_hello_thread\
-	_pthread_lock_linux\
+	_thread_test\
 	_thread_exec\
 	_thread_exit\
 	_thread_kill\
-	_thread_test\
+	_hello_thread\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -197,7 +196,7 @@ clean:
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs \
 	xv6memfs.img mkfs .gdbinit \
-	$(UPROGS)
+	$(UPROGS)	
 
 # make a printout
 FILES = $(shell grep -v '^\#' runoff.list)
@@ -255,7 +254,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c wc.c zombie.c\
-	printf.c umalloc.c hello_thread.c pthread_lock_linux.c thread_test.c thread_exec.c thread_exit.c thread_kill.c\
+	printf.c umalloc.c hello_thread.c thread_test.c thread_exec.c thread_exit.c thread_kill.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 

@@ -19,12 +19,6 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
 
-  if(curproc->tid > 0){
-    curproc->main_thread->tid = curproc->tid; 
-    curproc->tid = 0;
-    curproc->parent = curproc->main_thread->parent;
-    curproc->main_thread = 0;
-  }
   kill_threads(curproc->pid); // 나머지 thread를 종료
 
   begin_op();

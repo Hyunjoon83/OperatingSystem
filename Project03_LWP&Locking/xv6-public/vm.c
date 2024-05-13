@@ -38,9 +38,9 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
+  pde = &pgdir[PDX(va)]; // virtual address의 page directory index를 찾음
   if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde)); // page table을 찾음
   } else {
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
@@ -49,9 +49,9 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U; // page directory에 page table을 매핑
   }
-  return &pgtab[PTX(va)];
+  return &pgtab[PTX(va)]; // virtual address에 해당하는 index를 page table에서 찾은 뒤, 그 주소를 리턴
 }
 
 // Create PTEs for virtual addresses starting at va that refer to
@@ -70,7 +70,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
       return -1;
     if(*pte & PTE_P)
       panic("remap");
-    *pte = pa | perm | PTE_P;
+    *pte = pa | perm | PTE_P; // physical address와 permission을 설정
     if(a == last)
       break;
     a += PGSIZE;
@@ -121,14 +121,14 @@ setupkvm(void)
   pde_t *pgdir;
   struct kmap *k;
 
-  if((pgdir = (pde_t*)kalloc()) == 0)
+  if((pgdir = (pde_t*)kalloc()) == 0) // page directory를 할당받지 못하면 0을 리턴
     return 0;
-  memset(pgdir, 0, PGSIZE);
+  memset(pgdir, 0, PGSIZE); // 새로운 page directory를 0으로 초기화
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
     panic("PHYSTOP too high");
-  for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+  for(k = kmap; k < &kmap[NELEM(kmap)]; k++) 
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
-                (uint)k->phys_start, k->perm) < 0) {
+                (uint)k->phys_start, k->perm) < 0) { // kmap에 있는 정보를 이용하여 page table을 설정 (virtual과 physical address를 매핑)
       freevm(pgdir);
       return 0;
     }
@@ -224,21 +224,21 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   char *mem;
   uint a;
 
-  if(newsz >= KERNBASE)
+  if(newsz >= KERNBASE) // 0x80000000 = 2^31
     return 0;
   if(newsz < oldsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
-    mem = kalloc();
+    mem = kalloc(); // memory 할당
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
       deallocuvm(pgdir, newsz, oldsz);
       return 0;
     }
-    memset(mem, 0, PGSIZE);
-    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+    memset(mem, 0, PGSIZE); 
+    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){ // page table에 매핑
       cprintf("allocuvm out of memory (2)\n");
       deallocuvm(pgdir, newsz, oldsz);
       kfree(mem);
@@ -315,7 +315,7 @@ clearpteu(pde_t *pgdir, char *uva)
 pde_t*
 copyuvm(pde_t *pgdir, uint sz)
 {
-  pde_t *d;
+  pde_t *d; // page directory entry for child
   pte_t *pte;
   uint pa, i, flags;
   char *mem;
@@ -323,16 +323,17 @@ copyuvm(pde_t *pgdir, uint sz)
   if((d = setupkvm()) == 0)
     return 0;
   for(i = 0; i < sz; i += PGSIZE){
-    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)            // parent의 page table에서 i에 해당하는 pte를 찾음ㄴ
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
+    pa = PTE_ADDR(*pte); // physical address
+    flags = PTE_FLAGS(*pte); // permission
     if((mem = kalloc()) == 0)
       goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+    // P2V : physical address를 virtual address로 변환
+    memmove(mem, (char*)P2V(pa), PGSIZE);                       // kalloc으로 할당받은 메모리에 physical memory를 복사
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {    // child의 page table에 매핑
       kfree(mem);
       goto bad;
     }

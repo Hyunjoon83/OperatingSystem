@@ -104,8 +104,7 @@ int
 sys_thread_create(void)
 {
   thread_t *thread;
-  void *(*start_routine)(void *);
-  void *arg;
+  void *(*start_routine)(void *), *arg;
 
   if(argptr(0, (char**)&thread, sizeof(*thread)) < 0 || argptr(1, (char**)&start_routine, sizeof(*start_routine)) < 0 || argptr(2, (char**)&arg, sizeof(*arg)) < 0)
     return -1;
@@ -131,5 +130,5 @@ sys_thread_join(void)
 
   if(argint(0, (int*)&thread) < 0 || argptr(1, (char**)&retval, sizeof(*retval)) < 0)
     return -1;
-  return thread_join(thread, retval);
+  return thread_join((thread_t)thread, retval);
 }

@@ -20,7 +20,7 @@ struct run {
 struct {
   struct spinlock lock;
   int use_lock;
-  struct run *freelist;
+  struct run *freelist; // Linked list of free pages
 } kmem;
 
 // Initialization happens in two phases.
@@ -86,9 +86,9 @@ kalloc(void)
 
   if(kmem.use_lock)
     acquire(&kmem.lock);
-  r = kmem.freelist;
+  r = kmem.freelist;            // 4096 byte의 시작 주소
   if(r)
-    kmem.freelist = r->next;
+    kmem.freelist = r->next;    // Dequeue
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
