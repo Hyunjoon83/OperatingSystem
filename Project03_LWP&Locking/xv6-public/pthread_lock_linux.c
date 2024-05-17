@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 int shared_resource = 0;
 
@@ -10,33 +11,40 @@ void lock();
 void unlock();
 
 typedef struct {
-    volatile int flag[NUM_THREADS]; // lock 상태
-    volatile int turn[NUM_THREADS]; // 차례
+    volatile bool enter[NUM_THREADS]; // true: 자신의 차례, false: 아직 자신의 차례가 아님
+    volatile int number[NUM_THREADS]; // 현재 thread의 번호
 } lock_t;
 
 lock_t mutex;
 
-void lock(int thread_id)
-{
-    for(int j=0; j<NUM_THREADS; j++){
-        mutex.turn[j] = thread_id; // j번째 스레드의 차례
-        mutex.flag[thread_id] = j; // j번째 스레드의 flag
-
-        if(j == thread_id) // 자신의 차례일 때 -> critical section 진입
-            break;
-        else{
-            for(int k=0; k<NUM_THREADS; k++){
-                if(mutex.flag[k] != j && mutex.turn[j] == thread_id){ 
-                    break;
-                }
-            }
-        }
+void init_lock(lock_t *m){
+    for(int i=0; i<NUM_THREADS; i++){
+        m->enter[i] = false;
+        m->number[i] = 0;
     }
 }
 
-void unlock(int thread_id) 
-{
-    mutex.flag[thread_id] = 0; 
+void lock(int tid){
+    mutex.enter[tid] = true; // 자신의 차례를 알림
+
+    int max = 0;
+    for(int i=0; i<NUM_THREADS; i++){
+        if(max < mutex.number[i]){ 
+            max = mutex.number[i];
+        }
+    }
+
+    mutex.number[tid] = max + 1; // 현재 thread의 번호
+    mutex.enter[tid] = false; // 아직 자신의 차례가 아님
+
+    for(int j=0; j<NUM_THREADS; j++){
+        while(mutex.enter[j]); 
+        while(mutex.number[j] != 0 && (mutex.number[j] < mutex.number[tid] || (mutex.number[j] == mutex.number[tid] && j < tid)));
+    }
+}
+
+void unlock(int tid) {
+    mutex.number[tid] = 0; 
 }
 
 
@@ -53,16 +61,15 @@ void* thread_func(void* arg) {
 }
 
 int main() {
-    int n = NUM_THREADS;
-    pthread_t threads[n];
-    int tids[n];
+    pthread_t threads[NUM_THREADS];
+    int tids[NUM_THREADS];
     
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         tids[i] = i;
         pthread_create(&threads[i], NULL, thread_func, &tids[i]);
     }
     
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
 

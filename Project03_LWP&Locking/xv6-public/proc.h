@@ -33,21 +33,6 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-enum threadstate { T_UNUSED, T_EMBRYO, T_SLEEPING, T_RUNNABLE, T_RUNNING, T_ZOMBIE };
-
-struct thread {
-  uint sz;                     // Size of thread memory (bytes)
-  pde_t* pgdir;                // Page table - 다른 LWP와 공유
-
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run thread
-  void *chan;                  // If non-zero, sleeping on chan
-  int killed;                  // If non-zero, have been killed
-  enum threadstate state;      // Thread state
-
-  thread_t tid;                // Thread ID
-  void *retval;                // Return value of the thread  
-};
 
 // Per-process state
 struct proc {
@@ -65,7 +50,9 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  struct thread *threads[NTHREAD];      // Thread list
+  struct proc *main_thread;                  // Main thread
+  thread_t tid;                              // Thread ID
+  void *retval;                              // Return value of the thread
 };
 
 // Process memory is laid out contiguously, low addresses first:
