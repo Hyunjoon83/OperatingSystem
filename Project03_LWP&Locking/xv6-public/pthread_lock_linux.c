@@ -4,47 +4,47 @@
 
 int shared_resource = 0;
 
-#define NUM_ITERS 100
-#define NUM_THREADS 100
+#define NUM_ITERS 10000
+#define NUM_THREADS 1000
 
 void lock();
 void unlock();
 
 typedef struct {
-    volatile bool enter[NUM_THREADS]; // true: 자신의 차례, false: 아직 자신의 차례가 아님
-    volatile int number[NUM_THREADS]; // 현재 thread의 번호
+    volatile bool flag[NUM_THREADS]; // true: 자신의 차례, false: 아직 자신의 차례가 아님
+    volatile int turn[NUM_THREADS]; // 현재 thread의 번호
 } lock_t;
 
 lock_t mutex;
 
 void init_lock(lock_t *m){
     for(int i=0; i<NUM_THREADS; i++){
-        m->enter[i] = false;
-        m->number[i] = 0;
+        m->flag[i] = false;
+        m->turn[i] = 0;
     }
 }
 
 void lock(int tid){
-    mutex.enter[tid] = true; // 자신의 차례를 알림
+    mutex.flag[tid] = true; // 자신의 차례를 알림
 
     int max = 0;
     for(int i=0; i<NUM_THREADS; i++){
-        if(max < mutex.number[i]){ 
-            max = mutex.number[i];
+        if(max < mutex.turn[i]){ 
+            max = mutex.turn[i];
         }
     }
 
-    mutex.number[tid] = max + 1; // 현재 thread의 번호
-    mutex.enter[tid] = false; // 아직 자신의 차례가 아님
+    mutex.turn[tid] = max + 1; // 현재 thread의 번호
+    mutex.flag[tid] = false; // 아직 자신의 차례가 아님
 
     for(int j=0; j<NUM_THREADS; j++){
-        while(mutex.enter[j]); 
-        while(mutex.number[j] != 0 && (mutex.number[j] < mutex.number[tid] || (mutex.number[j] == mutex.number[tid] && j < tid)));
+        while(mutex.flag[j]); 
+        while(mutex.turn[j] != 0 && (mutex.turn[j] < mutex.turn[tid] || (mutex.turn[j] == mutex.turn[tid] && j < tid)));
     }
 }
 
 void unlock(int tid) {
-    mutex.number[tid] = 0; 
+    mutex.turn[tid] = 0; 
 }
 
 
