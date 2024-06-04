@@ -8,4 +8,8 @@
   - L0 ~ L2 : Round-Robin
   - L3 : Priority Scheduling
   - Monopoly Queue : FCFS
-### Project03 [LWP (Light-Weight Process) & Locking] [code]() / [wiki]()
+### Project03 [LWP (Light-Weight Process) & Locking] [code](https://github.com/Hyunjoon83/OperatingSystem/tree/main/Project03_LWP%26Locking/xv6-public) / [wiki]()
+  1) Make POSIX thread to implement LightWeight Process
+  2) Implement lock/unlock method without using C library API (e.g. pthread_mutex)
+### Project04 [Copy-On-Write] [code](https://github.com/Hyunjoon83/OperatingSystem/tree/main/Project04_Copy-On-Write/xv6-public) / [wiki]()
+  : Implement Copy-On-Write in xv6
