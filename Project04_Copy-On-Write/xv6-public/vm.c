@@ -352,9 +352,6 @@ bad:
   return 0;
 }
 
-
-
-
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
@@ -406,27 +403,41 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 void
 CoW_handler(void)
 {
-  struct proc *proc = myproc();
-  uint va = rcr2(); // Get the faulting address
-  pte_t *pte = walkpgdir(proc->pgdir, (void *)va, 0);
-  uint pa = PTE_ADDR(*pte);
-  char* mem = kalloc();
+  uint va = rcr2(); // get the faulting address
+  struct proc *p = myproc();
+  pte_t *pte;
+  char *mem;
+  uint pa;
 
-  // If the page is already writable, we should not be here
-  if (*pte & PTE_W || mem == 0){
-    proc->killed = 1;
-    return;
+  pte = walkpgdir(p->pgdir, (void*)va, 0);
+  if (!pte) { // PTE가 없는 경우
+    panic("CoW_handler: PTE should exist");
+  }
+  if (!(*pte & PTE_P)) { // page가 할당되지 않은 경우
+    panic("CoW_handler: Page is not present");
   }
 
-  // Copy the contents from the old page to the new page
-  memmove(mem, (char*)P2V(pa), PGSIZE);
-  // Update the page table entry to point to the new page
-  *pte = V2P(mem) | PTE_U | PTE_P | PTE_W;
-  // Flush the TLB to ensure the CPU uses the updated page table entries
-  lcr3(V2P(proc->pgdir));
+  pa = PTE_ADDR(*pte);
+  if (!(*pte & PTE_W)) { // Check if the page is not writable
+    if (get_refc(pa) > 1) { // 2개 이상의 프로세스가 공유하는 경우
+      mem = kalloc();
+      if (mem == 0) {
+        panic("CoW_handler: Out of memory");
+      }
+      memmove(mem, (char*)P2V(pa), PGSIZE);
+      *pte = V2P(mem) | PTE_P | PTE_W | PTE_U; 
+      decr_refc(pa); // old page의 참조 횟수 감소
+      incr_refc(V2P(mem)); // new page의 참조 횟수 증가
+    } else if(get_refc(pa) == 1) { // 1개의 프로세스만 사용하는 경우
+      *pte |= PTE_W; // page를 writable로 설정
+    } else if(get_refc(pa) == 0) {
+      panic("CoW_handler: refc is 0");
+    }
+    lcr3(V2P(myproc()->pgdir)); // refresh the TLB
+  } else { // page is writable
+    panic("CoW_handler: Page is writable");
+  }
 }
-
-
 
 int
 countvp(void)
@@ -442,10 +453,6 @@ countvp(void)
     if (pte && (*pte & PTE_P)) { // page가 할당된 경우
       count++;
     }
-    // kernel memory에 할당된 page는 미포함
-    if (va >= KERNBASE) {
-      continue;
-    }  
   }
 
   return count;
@@ -455,12 +462,12 @@ int
 countpp(void)
 {
   struct proc *p = myproc();
-  pde_t *pgdir = p->pgdir;
+  pde_t *pgdir = p->pgdir; // page directory
   int count = 0;
 
-  for (uint pa = 0; pa < KERNBASE; pa += PGSIZE) { 
-    pte_t *pte = walkpgdir(pgdir, (void *)pa, 0);
-    if (pte && (*pte & PTE_P)) {
+  for (uint pa = 0; pa < KERNBASE; pa += PGSIZE) {
+    pte_t *pte = walkpgdir(pgdir, (void *)pa, 0); // PTE를 찾음
+    if (pte && (*pte & PTE_P)) { // 유효한 물리 주소가 할당된 PTE인 경우
       count++;
     }
     if (pa >= KERNBASE){
@@ -477,12 +484,14 @@ countptp(void)
   pde_t *pgdir = p->pgdir;
   int count = 0;
 
-  count++; // page directory 자체를 포함
+  count++; // page directory에 포함된 page table
 
-  for (int i = 0; i < NPDENTRIES; i++) {
-    if (pgdir[i] & PTE_P) { 
+  for (int i = 0; i < NPDENTRIES; i++) { 
+    if (pgdir[i] & PTE_P) {  
       pte_t *pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i])); // page table을 찾음
 
+      if (pgtab == 0)
+        continue;
       if (pgtab[i] & PTE_P) { // page table entry가 할당된 경우
         count++;
       }

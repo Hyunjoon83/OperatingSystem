@@ -69,7 +69,6 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
-void            refcount_init(void); 
 void            incr_refc(uint);
 void            decr_refc(uint);
 int             get_refc(uint);
@@ -176,7 +175,6 @@ void            uartintr(void);
 void            uartputc(int);
 
 // vm.c
-void            refcount_init(void);
 void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);

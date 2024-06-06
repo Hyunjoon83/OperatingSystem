@@ -33,9 +33,11 @@ main(int argc, char *argv[])
     wait();
   }
 
-  if(parent_initial_fp - countfp() != 0)
+  if(parent_initial_fp - countfp() != 0){
+    printf(1,"parent initial fp: %d\n", parent_initial_fp);
+    printf(1,"parent final fp: %d\n", countfp());
     printf(1, "[Test 3] fail\n\n");
-  else
+  }else
     printf(1, "[Test 3] pass\n\n");
 
   exit();

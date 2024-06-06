@@ -24,6 +24,5 @@ int main(int argc, char *argv[])
     printf(1, "[Test 0] pass\n\n");
   else
     printf(1, "[Test 0] fail\n\n");
-
   exit();
 }

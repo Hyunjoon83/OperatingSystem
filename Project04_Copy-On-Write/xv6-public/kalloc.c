@@ -17,22 +17,9 @@ struct {
   struct spinlock lock;
   int use_lock;
   struct run *freelist;
-  int count; // free page count
+  int fp_cnt; // free page count
+  int ref_cnt[NPHYS_PAGES]; // reference count
 } kmem;
-
-struct {
-  struct spinlock lock;
-  int count[NPHYS_PAGES]; // reference count for each page
-} refcount;
-
-void
-refcount_init(void)
-{
-  initlock(&refcount.lock, "refcount");
-  for(int i = 0; i < NPHYS_PAGES; i++) {
-    refcount.count[i] = 0;
-  }
-}
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -43,9 +30,11 @@ void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
-  refcount_init();
   kmem.use_lock = 0;
-  kmem.count = 0;
+  kmem.fp_cnt = 0; // free page count
+  for(int i = 0; i < NPHYS_PAGES; i++) {
+    kmem.ref_cnt[i] = 0; // reference count
+  }
   freerange(vstart, vend);
 }
 
@@ -78,25 +67,32 @@ kfree(char *v)
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
+
+  uint pa = V2P(v);
+
+  if (kmem.use_lock)
+    acquire(&kmem.lock);
+
+  uint idx = pa / PGSIZE;
+  if (kmem.ref_cnt[idx] > 0)
+    kmem.ref_cnt[idx]--;
+  if (kmem.ref_cnt[idx] > 0) {
+    if (kmem.use_lock)
+      release(&kmem.lock);
+    return;
+  }
+
   // Fill with junk to catch dangling refs.
   memset(v, 1, PGSIZE);
 
-  uint pa = V2P(v);
-  uint idx = pa / PGSIZE;
-
-  refcount.count[idx]--;
-
-  if(kmem.use_lock)
-    acquire(&kmem.lock);
   r = (struct run*)v;
   r->next = kmem.freelist;
   kmem.freelist = r;
-  kmem.count++;
-  if(kmem.use_lock)
+  kmem.fp_cnt++;
+
+  if (kmem.use_lock)
     release(&kmem.lock);
 }
-
-
 
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
@@ -106,35 +102,29 @@ kalloc(void)
 {
   struct run *r;
 
-  if(kmem.use_lock)
+  if (kmem.use_lock)
     acquire(&kmem.lock);
+
   r = kmem.freelist;
-  if(r){
+  if (r != 0) {
     kmem.freelist = r->next;
-    kmem.count--;
+    kmem.fp_cnt--;
+
+    uint idx = V2P((char*)r) / PGSIZE;
+    kmem.ref_cnt[idx]++;
   }
 
-  if(kmem.use_lock)
+  if (kmem.use_lock)
     release(&kmem.lock);
-
-  if (r) {
-    memset((char*)r, 0, PGSIZE); // Zero out the allocated memory
-    uint pa = V2P((char*)r);
-    uint idx = pa / PGSIZE;
-    refcount.count[idx]++; // Initialize reference count to 1 for the new page
-  }
-
   return (char*)r;
 }
 
-
-// 시스템에 존재하는 free page의 총 개수 반환
 int 
 countfp(void) 
 {
-  int count = 0;
+  int count;
   acquire(&kmem.lock);
-  count = kmem.count;
+  count = kmem.fp_cnt;
   release(&kmem.lock);
   return count;
 }
@@ -143,32 +133,34 @@ void
 incr_refc(uint pa) 
 {
   uint idx = pa / PGSIZE;
-  acquire(&refcount.lock);
-  refcount.count[idx]++;
-  release(&refcount.lock);
+  if (kmem.use_lock)
+    acquire(&kmem.lock);
+  kmem.ref_cnt[idx]++;
+  if (kmem.use_lock)
+    release(&kmem.lock);
 }
-
 
 void 
 decr_refc(uint pa) 
 {
   uint idx = pa / PGSIZE;
-  acquire(&refcount.lock);
-  if (refcount.count[idx] <= 0) {
-    release(&refcount.lock);
-    panic("decr_refc: invalid reference count");
-  }
-  refcount.count[idx]--;
-  release(&refcount.lock);
+  if (kmem.use_lock)
+    acquire(&kmem.lock);
+  if (kmem.ref_cnt[idx] > 0)
+    kmem.ref_cnt[idx]--;
+  if (kmem.use_lock)
+    release(&kmem.lock);
 }
 
 int 
 get_refc(uint pa) 
 {
-  int count;
   uint idx = pa / PGSIZE;
-  acquire(&refcount.lock);
-  count = refcount.count[idx];
-  release(&refcount.lock);
-  return count;
+  int refc;
+  if (kmem.use_lock)
+    acquire(&kmem.lock);
+  refc = kmem.ref_cnt[idx];
+  if (kmem.use_lock)
+    release(&kmem.lock);
+  return refc;
 }
