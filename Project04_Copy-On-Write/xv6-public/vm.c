@@ -427,7 +427,6 @@ CoW_handler(void)
       memmove(mem, (char*)P2V(pa), PGSIZE);
       *pte = V2P(mem) | PTE_P | PTE_W | PTE_U; 
       decr_refc(pa); // old page의 참조 횟수 감소
-      incr_refc(V2P(mem)); // new page의 참조 횟수 증가
     } else if(get_refc(pa) == 1) { // 1개의 프로세스만 사용하는 경우
       *pte |= PTE_W; // page를 writable로 설정
     } else if(get_refc(pa) == 0) {
