@@ -409,7 +409,7 @@ CoW_handler(void)
   char *mem;
   uint pa;
 
-  pte = walkpgdir(p->pgdir, (void*)va, 0);
+  pte = walkpgdir(p->pgdir, (void*)va, 0); 
   if (!pte) { // PTE가 없는 경우
     panic("CoW_handler: PTE should exist");
   }
@@ -424,15 +424,15 @@ CoW_handler(void)
       if (mem == 0) {
         panic("CoW_handler: Out of memory");
       }
-      memmove(mem, (char*)P2V(pa), PGSIZE);
-      *pte = V2P(mem) | PTE_P | PTE_W | PTE_U; 
+      memmove(mem, (char*)P2V(pa), PGSIZE); // page 복사
+      *pte = V2P(mem) | PTE_P | PTE_W | PTE_U; // page를 writable로 설정
       decr_refc(pa); // old page의 참조 횟수 감소
     } else if(get_refc(pa) == 1) { // 1개의 프로세스만 사용하는 경우
       *pte |= PTE_W; // page를 writable로 설정
     } else if(get_refc(pa) == 0) {
       panic("CoW_handler: refc is 0");
     }
-    lcr3(V2P(myproc()->pgdir)); // refresh the TLB
+    lcr3(V2P(p->pgdir)); // refresh the TLB
   } else { // page is writable
     panic("CoW_handler: Page is writable");
   }
@@ -470,7 +470,7 @@ countpp(void)
       count++;
     }
     if (pa >= KERNBASE){
-      continue;
+      break;
     }
   }
   return count;
@@ -495,7 +495,7 @@ countptp(void)
         count++;
       }
     }
-  }
+  } 
 
   return count;
 }
